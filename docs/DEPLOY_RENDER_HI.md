@@ -1,16 +1,10 @@
 # Coaching Saathi — Hindi Setup & Render Deployment Guide
 
-यह guide Windows पर project चलाने और Render पर deploy करने के लिए है।
-
 ## 1. GitHub repository
+https://github.com/pk8873/COACHING-SAATHI
 
-Repository: https://github.com/pk8873/COACHING-SAATHI
-
-## 2. अपने Windows PC पर चलाएँ
-
-1. Python 3.12 install करें।
-2. GitHub repository को डाउनलोड/clone करें और PowerShell में project folder खोलें।
-3. नीचे दिए commands एक-एक करके चलाएँ:
+## 2. Windows पर local setup
+Python 3.12 install करें, repository डाउनलोड/clone करें, project folder में PowerShell खोलें और चलाएँ:
 
 ```powershell
 py -3.12 -m venv .venv
@@ -22,51 +16,36 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-Browser में `http://127.0.0.1:8000/` खोलें। नया institute बनाने के लिए **Sign up** करें।
+Browser में http://127.0.0.1:8000 खोलें और Sign up से institute owner account बनाएँ। Razorpay test mode के लिए `.env` में अपनी test key ID और secret डालें। Secret को GitHub पर कभी push न करें।
 
-यदि PowerShell virtual environment activate करने से रोके, उसी terminal में यह चलाएँ और फिर activate command दोहराएँ:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-```
-
-## 3. Render पर deploy करें
-
-1. https://dashboard.render.com/ खोलें और GitHub account connect करें।
+## 3. Render पर deploy
+1. https://dashboard.render.com/ खोलें और GitHub connect करें।
 2. **New + → Blueprint** चुनें।
-3. `pk8873/COACHING-SAATHI` repository select करें।
-4. Render repository के `render.yaml` से web service और PostgreSQL database बनाने का प्रस्ताव दिखाएगा। प्रस्ताव में service/database settings जाँचें और apply करें।
-5. Build पूरा होने तक Render के Events/Logs देखें।
-6. Deploy सफल होने के बाद Render द्वारा दिए गए `https://....onrender.com` URL को खोलें।
-7. पहले **Sign up** से institute owner account बनाएँ। Django admin की जरूरत हो तो Render Shell में `python manage.py createsuperuser` चलाएँ।
+3. `pk8873/COACHING-SAATHI` चुनें और `render.yaml` की settings review करें।
+4. Service environment में online payment चालू करना हो तो `RAZORPAY_KEY_ID` और `RAZORPAY_KEY_SECRET` जोड़ें। शुरुआत test keys से करें।
+5. Deploy पूरा होने पर Render URL खोलें और owner signup करें।
+6. `/health/` खोलकर health endpoint जाँचें। Render logs में migrations और startup errors देखें।
 
-### Deployment check
+## 4. Features
+- Student, batch, attendance और fee receipt management
+- Razorpay Checkout online fee collection और server-side signature verification
+- Staff login: Administrator, Teacher, Accountant; role-based access restrictions
+- Exams बनाना, batch के students के marks दर्ज करना और percentage निकालना
+- Date range के आधार पर collection, attendance और exam reports; fee CSV export
+- Responsive layout, PWA basics, PostgreSQL, WhiteNoise और automated tests
 
-- `https://YOUR-SERVICE.onrender.com/health/` खोलने पर `{"status": "ok"}` आना चाहिए।
-- Sign up, login/logout, student create/edit, batch, attendance, fee receipt, CSV export और settings को जाँचें।
-- Render logs में migration या static-file errors न हों।
+## 5. Staff roles
+- Owner: सभी features
+- Administrator: staff/settings सहित institute management
+- Teacher: students, batches, attendance, exams/results, reports
+- Accountant: student list, fees/receipts और reports
 
-## 4. App में अभी क्या है?
+## 6. Razorpay configuration
+Razorpay account बनाएँ और Dashboard से API test keys प्राप्त करें। Render → Service → Environment में:
+- `RAZORPAY_KEY_ID`: public key ID
+- `RAZORPAY_KEY_SECRET`: private secret
 
-- Institute owner signup/login
-- Dashboard और current-month fee collection summary
-- Students: add, edit, search, archive, CSV export
-- Batches create/list
-- Daily attendance: present, absent, late, approved leave
-- Fee payments, unique receipt number और printable receipt
-- Institute profile/settings
-- Responsive web layout और PWA manifest/service worker basics
-- PostgreSQL deployment configuration, static files via WhiteNoise, health endpoint और automated Django tests
+यह application receipt बनाने से पहले server-side payment signature verify करती है। पहले test mode में successful, failed, cancelled और duplicate callback scenarios जाँचें। Live payments के लिए Razorpay account approval, fees, refunds, webhooks, reconciliation और legal/accounting obligations अलग से configure/test करने होंगे।
 
-## 5. जरूरी सीमाएँ
-
-यह अभी एक **MVP** है—पूरा commercial SaaS नहीं। इसमें payment gateway, WhatsApp automation, subscription billing, staff/teacher roles, exam/results module और advanced reports अभी शामिल नहीं हैं।
-
-- Free hosting पर app sleep हो सकता है और free database की availability/retention की शर्तें बदल सकती हैं। Render dashboard में current limits और backup options देखें।
-- असली विद्यार्थियों का data डालने से पहले backup/restore प्रक्रिया जाँचें।
-- `SECRET_KEY` को secret रखें; उसे GitHub में commit न करें।
-- Production launch से पहले privacy notice, access controls और security review करें।
-
-## 6. Automated checks
-
-GitHub Actions workflow `.github/workflows/django.yml` push पर migrations, tests और `manage.py check` चलाता है। किसी commit की स्थिति देखने के लिए repository के **Actions** tab में जाएँ.
+## 7. Important
+यह production-audited commercial SaaS नहीं है। असली student data या live payments से पहले role testing, security review, backup/restore, privacy policy, payment reconciliation और refund workflow लागू करें। Free hosting/database की availability और retention limits बदल सकती हैं।
