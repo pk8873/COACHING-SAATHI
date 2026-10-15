@@ -1,8 +1,4 @@
 from django.contrib import admin
-from .models import Institute, Batch, Student, Attendance, FeePayment
+from .models import Institute, Batch, Student, Attendance, FeePayment, StaffMembership, PaymentOrder, Exam, ExamResult
 
-admin.site.register(Institute)
-admin.site.register(Batch)
-admin.site.register(Student)
-admin.site.register(Attendance)
-admin.site.register(FeePayment)
+admin.site.register([Institute, Batch, Student, Attendance, FeePayment, StaffMembership, PaymentOrder, Exam, ExamResult])
