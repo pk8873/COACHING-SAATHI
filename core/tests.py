@@ -1,4 +1,9 @@
 from decimal import Decimal
+import hashlib
+import hmac
+import json
+import os
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
@@ -6,7 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .forms import ExamResultForm
-from .models import Attendance, FeePayment, Institute, Student, StaffMembership, Exam
+from .models import Attendance, FeePayment, Institute, Student, StaffMembership, Exam, PaymentOrder
 
 
 class TenantIsolationTests(TestCase):
@@ -154,3 +159,49 @@ class ExamResultValidationTests(TestCase):
             exam=self.exam, institute=self.institute,
         )
         self.assertTrue(form.is_valid())
+
+
+
+class RazorpayWebhookTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(username="payowner", password="Strong-password-123")
+        self.institute = Institute.objects.create(owner=self.owner, name="Payment Test Institute")
+        self.student = Student.objects.create(
+            institute=self.institute, student_id="PAY001", full_name="Payment Learner"
+        )
+        self.order = PaymentOrder.objects.create(
+            institute=self.institute, student=self.student, created_by=self.owner,
+            fee_month=timezone.localdate().replace(day=1), amount=Decimal("500.00"),
+            razorpay_order_id="order_test_123",
+        )
+
+    def test_signed_capture_webhook_creates_one_receipt_even_if_retried(self):
+        secret = "test-webhook-secret"
+        payload = {
+            "event": "payment.captured",
+            "payload": {"payment": {"entity": {
+                "id": "pay_test_123", "order_id": self.order.razorpay_order_id
+            }}},
+        }
+        body = json.dumps(payload).encode("utf-8")
+        signature = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
+        with patch.dict(os.environ, {"RAZORPAY_WEBHOOK_SECRET": secret}):
+            for _ in range(2):
+                response = self.client.post(
+                    reverse("razorpay_webhook"), data=body,
+                    content_type="application/json",
+                    HTTP_X_RAZORPAY_SIGNATURE=signature,
+                )
+                self.assertEqual(response.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "paid")
+        self.assertEqual(FeePayment.objects.filter(institute=self.institute).count(), 1)
+
+    def test_invalid_webhook_signature_is_rejected(self):
+        with patch.dict(os.environ, {"RAZORPAY_WEBHOOK_SECRET": "expected-secret"}):
+            response = self.client.post(
+                reverse("razorpay_webhook"), data=b'{"event":"payment.captured"}',
+                content_type="application/json", HTTP_X_RAZORPAY_SIGNATURE="invalid",
+            )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(FeePayment.objects.count(), 0)
