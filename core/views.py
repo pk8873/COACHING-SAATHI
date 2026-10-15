@@ -508,7 +508,7 @@ def exam_result_edit(request, pk, result_pk):
             return redirect("exam_results", pk=exam.pk)
     return render(request, "form_page.html", {
         "form": form, "title": "Edit exam result", "subtitle": f"{exam.title} — {result.student.full_name}",
-        "institute": institute, "role": _role_for_user(request.user),
+        "institute": institute, "role": _role_for_user(request.user), "exam": exam,
     })
 
 
