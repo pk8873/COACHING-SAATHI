@@ -66,6 +66,7 @@ def dashboard(request):
         "month_collection": month_payments.aggregate(total=Sum("amount"))["total"] or Decimal("0.00"),
         "fee_due": fee_due, "recent_payments": recent_payments,
         "attendance_present": attendance_today.filter(status="present").count(),
+        "attendance_absent": attendance_today.filter(status="absent").count(),
     }
     return render(request, "dashboard.html", context)
 
