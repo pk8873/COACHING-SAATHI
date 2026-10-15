@@ -489,6 +489,30 @@ def exam_results(request, pk):
 
 
 @login_required
+@roles_required("owner", "admin", "teacher")
+def exam_result_edit(request, pk, result_pk):
+    institute = _require_institute(request)
+    if not institute:
+        return redirect("landing")
+    exam = get_object_or_404(Exam, pk=pk, institute=institute)
+    result = get_object_or_404(ExamResult, pk=result_pk, exam=exam)
+    form = ExamResultForm(request.POST or None, instance=result, exam=exam, institute=institute)
+    if request.method == "POST" and form.is_valid():
+        updated = form.save(commit=False)
+        if ExamResult.objects.filter(exam=exam, student=updated.student).exclude(pk=result.pk).exists():
+            form.add_error("student", "This student already has a result for this exam.")
+        else:
+            updated.exam = exam
+            updated.save()
+            messages.success(request, "Exam result updated.")
+            return redirect("exam_results", pk=exam.pk)
+    return render(request, "form_page.html", {
+        "form": form, "title": "Edit exam result", "subtitle": f"{exam.title} — {result.student.full_name}",
+        "institute": institute, "role": _role_for_user(request.user),
+    })
+
+
+@login_required
 @roles_required("owner", "admin", "accountant")
 def reports(request):
     institute = _require_institute(request)
