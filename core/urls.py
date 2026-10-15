@@ -3,6 +3,7 @@ from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
+    path("sw.js", views.service_worker, name="service_worker"),
     path("", views.landing, name="landing"),
     path("signup/", views.signup, name="signup"),
     path("login/", auth_views.LoginView.as_view(template_name="registration/login.html"), name="login"),
