@@ -22,7 +22,7 @@
       <a href="{% url 'students' %}"><i class="bi bi-people"></i> Students</a>
       {% if workspace_role != "accountant" %}<a href="{% url 'batches' %}"><i class="bi bi-collection"></i> Batches</a><a href="{% url 'attendance' %}"><i class="bi bi-calendar-check"></i> Attendance</a><a href="{% url 'exams' %}"><i class="bi bi-journal-check"></i> Exams & results</a>{% endif %}
       {% if workspace_role != "teacher" %}<a href="{% url 'fees' %}"><i class="bi bi-wallet2"></i> Fees & receipts</a>{% endif %}
-      <a href="{% url 'reports' %}"><i class="bi bi-graph-up"></i> Advanced reports</a>
+      {% if workspace_role != "teacher" %}<a href="{% url 'reports' %}"><i class="bi bi-graph-up"></i> Advanced reports</a>{% endif %}
       {% if workspace_role == "owner" or workspace_role == "admin" %}<a href="{% url 'staff' %}"><i class="bi bi-person-gear"></i> Staff & roles</a><a href="{% url 'settings' %}"><i class="bi bi-gear"></i> Institute settings</a>{% endif %}
     </nav>
     <div class="sidebar-bottom"><div class="small text-muted mb-2">Signed in as <b>{{ workspace_role|default:"member"|title }}</b></div><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button><i class="bi bi-box-arrow-right"></i> Sign out</button></form></div>
