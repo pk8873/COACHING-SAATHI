@@ -10,6 +10,14 @@ from django.utils import timezone
 from .forms import SignupForm, StudentForm, BatchForm, AttendanceForm, FeePaymentForm, InstituteForm
 from .models import Institute, Student, Batch, Attendance, FeePayment
 
+def service_worker(request):
+    from pathlib import Path
+    source = Path(__file__).resolve().parent.parent / "static" / "pwa" / "sw.js"
+    response = HttpResponse(source.read_text(encoding="utf-8"), content_type="application/javascript")
+    response["Service-Worker-Allowed"] = "/"
+    response["Cache-Control"] = "no-cache"
+    return response
+
 def landing(request):
     if request.user.is_authenticated:
         return redirect("dashboard")
