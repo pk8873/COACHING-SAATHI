@@ -1,10 +1,14 @@
 import csv
 import os
+import hmac
+import hashlib
+import json
 from decimal import Decimal
 from functools import wraps
 
 import razorpay
 from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -230,6 +234,61 @@ def _razorpay_client():
     return razorpay.Client(auth=(key_id, key_secret))
 
 
+def _settle_online_order(order_id, payment_id):
+    with transaction.atomic():
+        order = PaymentOrder.objects.select_for_update().get(razorpay_order_id=order_id)
+        if order.status == "paid":
+            return FeePayment.objects.filter(
+                institute=order.institute,
+                note__contains=order.razorpay_order_id,
+            ).first()
+        payment = FeePayment.objects.create(
+            institute=order.institute,
+            student=order.student,
+            fee_month=order.fee_month,
+            amount=order.amount,
+            method="online",
+            note=f"Razorpay order {order.razorpay_order_id}; payment {payment_id}",
+        )
+        order.razorpay_payment_id = payment_id
+        order.status = "paid"
+        order.paid_at = timezone.now()
+        order.save(update_fields=["razorpay_payment_id", "status", "paid_at"])
+        return payment
+
+
+@csrf_exempt
+def razorpay_webhook(request):
+    if request.method != "POST":
+        return HttpResponse(status=405)
+    secret = os.getenv("RAZORPAY_WEBHOOK_SECRET", "").strip()
+    signature = request.headers.get("X-Razorpay-Signature", "")
+    if not secret or not signature:
+        return HttpResponse(status=400)
+    expected = hmac.new(secret.encode("utf-8"), request.body, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, signature):
+        return HttpResponse(status=400)
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+        event = payload.get("event", "")
+        entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
+        order_id = entity.get("order_id")
+        payment_id = entity.get("id", "")
+    except (ValueError, AttributeError, TypeError):
+        return HttpResponse(status=400)
+    if not order_id:
+        return HttpResponse(status=200)
+    order = PaymentOrder.objects.filter(razorpay_order_id=order_id).first()
+    if not order:
+        return HttpResponse(status=200)
+    if event in ("payment.captured", "order.paid") and payment_id:
+        _settle_online_order(order_id, payment_id)
+    elif event == "payment.failed" and order.status != "paid":
+        order.status = "failed"
+        order.save(update_fields=["status"])
+    return HttpResponse(status=200)
+
+
 @login_required
 @roles_required("owner", "admin", "accountant")
 def fees(request):
@@ -324,18 +383,10 @@ def online_payment_verify(request):
         order.save(update_fields=["status"])
         messages.error(request, "Payment signature verification failed. No receipt was created.")
         return redirect("fees")
-    with transaction.atomic():
-        order = PaymentOrder.objects.select_for_update().get(pk=order.pk)
-        if order.status != "paid":
-            payment = FeePayment.objects.create(
-                institute=institute, student=order.student, fee_month=order.fee_month,
-                amount=order.amount, method="online",
-                note=f"Razorpay order {order.razorpay_order_id}; payment {payment_id}",
-            )
-            order.razorpay_payment_id = payment_id
-            order.status = "paid"
-            order.paid_at = timezone.now()
-            order.save(update_fields=["razorpay_payment_id", "status", "paid_at"])
+    payment = _settle_online_order(order.razorpay_order_id, payment_id)
+    if not payment:
+        messages.error(request, "Payment was verified, but a receipt could not be found. Please contact the institute.")
+        return redirect("fees")
     messages.success(request, "Online payment verified successfully.")
     return redirect("receipt", pk=payment.pk)
 
