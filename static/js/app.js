@@ -3,7 +3,7 @@
   const sidebar = document.querySelector(".sidebar");
   if (toggle && sidebar) toggle.addEventListener("click", () => sidebar.classList.toggle("open"));
   if ("serviceWorker" in navigator && window.location.protocol === "https:") {
-    window.addEventListener("load", () => navigator.serviceWorker.register("/static/pwa/sw.js").catch(() => {}));
+    window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
   }
   document.querySelectorAll("form").forEach(form => {
     form.querySelectorAll("input:not([type=checkbox]):not([type=hidden]),select,textarea").forEach(field => {
