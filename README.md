@@ -37,3 +37,8 @@ This is an MVP, not yet a full commercial SaaS. It has institute-level ownership
 python manage.py test
 python manage.py check --deploy
 ```
+
+
+## Hindi guide
+
+Windows पर local setup और Render deployment के लिए [Hindi setup guide](docs/DEPLOY_RENDER_HI.md) देखें.
