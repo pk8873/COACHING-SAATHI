@@ -44,8 +44,9 @@ Browser में http://127.0.0.1:8000 खोलें और Sign up से in
 Razorpay account बनाएँ और Dashboard से API test keys प्राप्त करें। Render → Service → Environment में:
 - `RAZORPAY_KEY_ID`: public key ID
 - `RAZORPAY_KEY_SECRET`: private secret
+- `RAZORPAY_WEBHOOK_SECRET`: webhook secret (इसे Razorpay webhook configuration में भी वही रखें)
 
-यह application receipt बनाने से पहले server-side payment signature verify करती है। पहले test mode में successful, failed, cancelled और duplicate callback scenarios जाँचें। Live payments के लिए Razorpay account approval, fees, refunds, webhooks, reconciliation और legal/accounting obligations अलग से configure/test करने होंगे।
+Razorpay Dashboard में webhook URL `https://YOUR-SERVICE.onrender.com/webhooks/razorpay/` सेट करें, समान webhook secret डालें और `payment.captured`, `payment.failed`, `order.paid` events चुनें। Receipt बनाने से पहले app checkout signature और webhook HMAC verify करती है। Test mode में successful, failed, cancelled और duplicate callback scenarios जाँचें। Live payments के लिए Razorpay account approval, fees, refunds, webhooks, reconciliation और legal/accounting obligations अलग से configure/test करने होंगे।
 
 ## 7. Important
 यह production-audited commercial SaaS नहीं है। असली student data या live payments से पहले role testing, security review, backup/restore, privacy policy, payment reconciliation और refund workflow लागू करें। Free hosting/database की availability और retention limits बदल सकती हैं।
