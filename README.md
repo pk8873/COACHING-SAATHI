@@ -48,7 +48,7 @@ The application verifies the payment signature on the server before creating a f
 ## Role overview
 - Owner: all features
 - Administrator: staff, institute settings, students, fees, attendance, exams and reports
-- Teacher: students, batches, attendance, exams/results and reports
+- Teacher: students, batches, attendance and exams/results
 - Accountant: student list, fees/receipts and reports
 
 ## Checks
