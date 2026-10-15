@@ -24,6 +24,7 @@ urlpatterns = [
     path("staff/<int:pk>/deactivate/", views.staff_deactivate, name="staff_deactivate"),
     path("exams/", views.exams, name="exams"),
     path("exams/<int:pk>/results/", views.exam_results, name="exam_results"),
+    path("exams/<int:pk>/results/<int:result_pk>/edit/", views.exam_result_edit, name="exam_result_edit"),
     path("reports/", views.reports, name="reports"),
     path("reports/export.csv", views.export_report, name="export_report"),
     path("reports/students.csv", views.export_students, name="export_students"),
