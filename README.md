@@ -1,44 +1,65 @@
 # Coaching Saathi
 
-A responsive, installable Django web app for small Indian coaching institutes. This repository starts with a deployable MVP: institute registration, dashboard, students, batches, attendance, fee ledger, CSV export, and PWA basics.
+A responsive Django web app for Indian coaching institutes: student records, batches, attendance, fee receipts, Razorpay online collection, staff roles, exams/results, and reporting.
 
 ## Stack
-- Python 3.12 / Django 5.2 LTS
-- PostgreSQL in production; SQLite locally
-- WhiteNoise static files
-- Bootstrap 5, Bootstrap Icons, Chart.js (CDN)
-- PWA manifest and service worker
+- Python 3.12 / Django 5.2
+- PostgreSQL on Render; SQLite for local development
+- WhiteNoise static files and Gunicorn
+- Razorpay Checkout (requires your own API credentials)
+- Responsive Bootstrap UI and PWA basics
 
-## Run locally (Windows PowerShell)
+## Local setup (Windows PowerShell)
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 python manage.py migrate
-python manage.py createsuperuser
 python manage.py runserver
 ```
-Open http://127.0.0.1:8000. Registration creates an institute and its owner account. Never use demo credentials in production.
+Open http://127.0.0.1:8000 and create your owner account using Sign up. To use Razorpay locally, put your **test** key ID and key secret in `.env`. Never commit secrets.
 
 ## Render deployment
-1. Push this repository to GitHub and choose **New Web Service** in Render.
-2. Connect this repository. Render can use the included `render.yaml` Blueprint.
-3. Create the PostgreSQL database and set `DATABASE_URL` from Render's internal database URL.
-4. Set `SECRET_KEY` to a long random secret, `DEBUG=false`, and `ALLOWED_HOSTS` to your Render hostname (or use the provided settings defaults).
-5. Deploy. The build command installs dependencies and runs collectstatic; the start command runs migrations and Gunicorn.
-6. Create an admin account in the Render Shell with `python manage.py createsuperuser`.
+1. Open https://dashboard.render.com/ and connect GitHub.
+2. Create a Blueprint from this repository; review the service and PostgreSQL settings in `render.yaml`.
+3. Render reads the build/start commands and applies migrations during startup.
+4. In the Render service's Environment section, add `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` only if you want online payments. Begin with Razorpay test keys.
+5. Deploy, create an institute owner account, then test the features using non-sensitive sample data.
 
-## Important limitations
-This is an MVP, not yet a full commercial SaaS. It has institute-level ownership isolation for the included records, but no integrated payment gateway, automated WhatsApp API, subscription billing, email delivery, or advanced staff-role management. Configure backups and privacy/legal policies before storing real student data. Review security and run tests before production launch.
+## Features
+- Owner signup/login and institute profile
+- Students, batches, daily attendance and CSV export
+- Offline fee ledger, unique receipt numbers and printable receipts
+- Razorpay order creation, hosted checkout and server-side signature verification
+- Staff accounts with Owner, Administrator, Teacher and Accountant access levels
+- Exam creation, batch-scoped student lists, result entry, marks validation and percentage
+- Date-range reports: fee collection, transaction counts, attendance totals, exam/result counts and average marks; fee CSV export
+- PWA manifest/service worker basics, health endpoint, automated checks
 
-## Tests
+## Razorpay setup and safety
+Create an account at https://razorpay.com/, activate the relevant payment features, and use test keys first. In Render, set:
+- `RAZORPAY_KEY_ID`: key ID
+- `RAZORPAY_KEY_SECRET`: secret key (keep private)
+
+The application verifies the payment signature on the server before creating a fee receipt. Test success, failure, cancelled checkout, duplicate callbacks and reconciliation before accepting real payments. Payment provider onboarding/approval and transaction fees are separate from this code. Never use live keys in a public repository.
+
+## Role overview
+- Owner: all features
+- Administrator: staff, institute settings, students, fees, attendance, exams and reports
+- Teacher: students, batches, attendance, exams/results and reports
+- Accountant: student list, fees/receipts and reports
+
+## Checks
 ```powershell
+python manage.py migrate
 python manage.py test
-python manage.py check --deploy
-```
+python manage.py check
+``
 
+## Production notes
+This is an extended MVP, not a fully audited commercial SaaS. Before real student/payment data, run a security review, verify role access with separate accounts, configure database backups and recovery, write privacy/retention policies, and test Razorpay webhooks/reconciliation. The current checkout flow verifies Razorpay's checkout signature; it is not a substitute for a production webhook, refund workflow, dispute handling or accounting reconciliation. Free hosting plans can sleep or change limits.
 
-## Hindi guide
-
-Windows पर local setup और Render deployment के लिए [Hindi setup guide](docs/DEPLOY_RENDER_HI.md) देखें.
+## Hindi deployment guide
+See [docs/DEPLOY_RENDER_HI.md](docs/DEPLOY_RENDER_HI.md).
