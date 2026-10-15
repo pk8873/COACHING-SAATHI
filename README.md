@@ -42,8 +42,9 @@ Open http://127.0.0.1:8000 and create your owner account using Sign up. To use R
 Create an account at https://razorpay.com/, activate the relevant payment features, and use test keys first. In Render, set:
 - `RAZORPAY_KEY_ID`: key ID
 - `RAZORPAY_KEY_SECRET`: secret key (keep private)
+- `RAZORPAY_WEBHOOK_SECRET`: a webhook secret you choose when creating the Razorpay webhook
 
-The application verifies the payment signature on the server before creating a fee receipt. Test success, failure, cancelled checkout, duplicate callbacks and reconciliation before accepting real payments. Payment provider onboarding/approval and transaction fees are separate from this code. Never use live keys in a public repository.
+In Razorpay Dashboard, configure a webhook endpoint at `https://YOUR-SERVICE.onrender.com/webhooks/razorpay/` with the same `RAZORPAY_WEBHOOK_SECRET`, and subscribe to `payment.captured`, `payment.failed` and `order.paid`. The application verifies the checkout signature and webhook HMAC on the server before creating a fee receipt. Test success, failure, cancelled checkout, duplicate callbacks and reconciliation before accepting real payments. Payment provider onboarding/approval and transaction fees are separate from this code. Never use live keys in a public repository.
 
 ## Role overview
 - Owner: all features
