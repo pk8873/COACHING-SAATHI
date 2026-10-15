@@ -5,7 +5,8 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Attendance, FeePayment, Institute, Student
+from .forms import ExamResultForm
+from .models import Attendance, FeePayment, Institute, Student, StaffMembership, Exam
 
 
 class TenantIsolationTests(TestCase):
@@ -96,3 +97,60 @@ class SignupTests(TestCase):
         self.assertEqual(user.institute.name, "New Coaching Centre")
         self.assertTrue(response.context["user"].is_authenticated)
         self.assertEqual(response.redirect_chain[-1][0], reverse("dashboard"))
+
+
+
+class StaffRoleTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(username="ownerrole", password="Strong-password-123")
+        self.institute = Institute.objects.create(owner=self.owner, name="Role Test Institute")
+        self.teacher = User.objects.create_user(username="teacherrole", password="Strong-password-123")
+        self.accountant = User.objects.create_user(username="accountantrole", password="Strong-password-123")
+        StaffMembership.objects.create(institute=self.institute, user=self.teacher, role="teacher")
+        StaffMembership.objects.create(institute=self.institute, user=self.accountant, role="accountant")
+
+    def test_teacher_can_access_exams(self):
+        self.client.force_login(self.teacher)
+        response = self.client.get(reverse("exams"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_accountant_cannot_access_exam_management(self):
+        self.client.force_login(self.accountant)
+        response = self.client.get(reverse("exams"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_accountant_can_access_fee_page(self):
+        self.client.force_login(self.accountant)
+        response = self.client.get(reverse("fees"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_teacher_cannot_manage_staff(self):
+        self.client.force_login(self.teacher)
+        response = self.client.get(reverse("staff"))
+        self.assertEqual(response.status_code, 403)
+
+
+class ExamResultValidationTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(username="examowner", password="Strong-password-123")
+        self.institute = Institute.objects.create(owner=self.owner, name="Exam Institute")
+        self.student = Student.objects.create(institute=self.institute, student_id="EX001", full_name="Test Learner")
+        self.exam = Exam.objects.create(
+            institute=self.institute, title="Maths Test",
+            exam_date=timezone.localdate(), max_marks=Decimal("50.00"), created_by=self.owner,
+        )
+
+    def test_marks_cannot_exceed_exam_maximum(self):
+        form = ExamResultForm(
+            data={"student": self.student.pk, "marks_obtained": "51", "remarks": ""},
+            exam=self.exam, institute=self.institute,
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("marks_obtained", form.errors)
+
+    def test_marks_within_maximum_are_valid(self):
+        form = ExamResultForm(
+            data={"student": self.student.pk, "marks_obtained": "45", "remarks": "Good"},
+            exam=self.exam, institute=self.institute,
+        )
+        self.assertTrue(form.is_valid())
