@@ -37,7 +37,7 @@ Browser में http://127.0.0.1:8000 खोलें और Sign up से in
 ## 5. Staff roles
 - Owner: सभी features
 - Administrator: staff/settings सहित institute management
-- Teacher: students, batches, attendance, exams/results, reports
+- Teacher: students, batches, attendance, exams/results
 - Accountant: student list, fees/receipts और reports
 
 ## 6. Razorpay configuration
