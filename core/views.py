@@ -438,7 +438,7 @@ def exam_results(request, pk):
 
 
 @login_required
-@roles_required("owner", "admin", "teacher", "accountant")
+@roles_required("owner", "admin", "accountant")
 def reports(request):
     institute = _require_institute(request)
     if not institute:
@@ -467,7 +467,7 @@ def reports(request):
 
 
 @login_required
-@roles_required("owner", "admin", "teacher", "accountant")
+@roles_required("owner", "admin", "accountant")
 def export_report(request):
     institute = _require_institute(request)
     if not institute:
